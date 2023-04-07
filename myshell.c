@@ -77,7 +77,7 @@ void stringToArray(const char str[], char arr[][100], int *numWords) {
 void inputCommand(char str[100]){
 	printf("$ "); 
 	fflush(stdout);
-	scanf("%100[^\n\r]", str);
+	scanf(" %100[^\n\r]", str);
 }
 
 void executeCommand(char arr[][100], int numWords) {
@@ -104,28 +104,16 @@ void executeCommand(char arr[][100], int numWords) {
 }
 
 
+
 int main () {
 	char str[100]=" ";
-	char array[100][100];
-	// inputCommand(str);
-	// printf("the number of words is %d\n",wordCount(str));
 	
-	pid_t pidfork = fork();
-    if (pidfork == -1) {
-        // Fork failed
-        perror("fork");
-        return;
-    } else if (pidfork == 0) {
-        // Child process
-		pid_t pid = getpid();
-		printf("I'm the child my pid is %d\n",pid);
-	}else{
-		int status;
-		wait(&status);
-		pid_t pid = getpid();
-		printf("I'm your father my pid is %d\n",pid);
-		printf("input sumthing:");
+	while(1){
+		inputCommand(str);
+		if (strcmp(str,"exit") == 0){
+			break;
+		}
+		printf("your input is %s\n",str);
 	}
-	
 	return 0;
 }
