@@ -88,7 +88,7 @@ void executeCommand(char arr[][100], int numWords) {
         return;
     } else if (pidfork == 0) {
         // Child process
-        char** args = (char**)malloc((numWords + 1) * sizeof(char*)); // Allocate memory for arguments array
+      	char** args = (char**)calloc(numWords + 1, sizeof(char*)); // Allocate memory for arguments array
         for (int i = 0; i < numWords; i++) {
             args[i] = arr[i]; // Assign each word to the arguments array
         }
@@ -103,20 +103,6 @@ void executeCommand(char arr[][100], int numWords) {
     }
 }
 
-
-// void excuteCommand(char arr[][100],int numWords){
-// 	pid_t pidfork = fork();
-// 	if (pidfork == -1) {
-//         // Fork failed
-//     	perror("fork failed");
-//     	return;
-//     } else if (pidfork == 0) {
-//         // Child process
-// 		//exec sommthing 
-// 	}
-// 	int status;
-// 	wait(&status);
-// }
 
 int main () {
 	char str[100]=" ";
