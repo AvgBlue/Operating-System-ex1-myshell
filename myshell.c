@@ -27,6 +27,7 @@ void initQueue(Queue *q)
 	// set count 0;
 	q->count = 0;
 }
+
 // This function adds an element to the queue
 void push(Queue *q, char *value)
 {
@@ -180,108 +181,139 @@ void executeCommand(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZ
 	addToHistory(historyQueue, pidfork, str);
 }
 
+// the implementation of cd
 int cd(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZE], int numWords, Queue *historyQueue)
 {
-	// cd implementation
-	if (strcmp(arr[0], "cd") == 0)
+	if (strcmp(arr[0], "cd") != 0)
 	{
-		// Add executed command to history
-		addToHistory(historyQueue, getpid(), str);
+		// Return failure status if command is not "cd"
+		return 0;
+	}
+	// Add executed command to history
+	addToHistory(historyQueue, getpid(), str);
 
-		if (numWords > 2)
-		{
-			// Print error message for too many arguments
-			printf("cd: too many arguments\n");
-			// return for continue
-			return 1;
-		}
-		// Special cases for "." and ".."
-		if (strcmp(arr[1], ".") == 0 || strcmp(arr[1], "..") == 0)
-		{
-			// Change directory to "." or ".."
-			chdir(arr[1]);
-			// return for continue
-			return 1;
-		}
-		// Regular attempt to change directory
-		if (chdir(arr[1]) == -1)
-		{
-			// Print error message for invalid directory
-			printf("history: too many arguments\n");
-		}
+	if (numWords > 2)
+	{
+		// Print error message for too many arguments
+		printf("cd: too many arguments\n");
 		// return for continue
 		return 1;
 	}
-	// Return failure status if command is not "cd"
-	return 0;
-}
-
-int history(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZE], int numWords, Queue *historyQueue)
-{
-	// history implumention
-	if (strcmp(arr[0], "history") == 0)
+	// Special cases for "." and ".."
+	if (strcmp(arr[1], ".") == 0 || strcmp(arr[1], "..") == 0)
 	{
-		addToHistory(historyQueue, getpid(), str);
-		if (numWords > 1)
-		{
-			printf("Error for too many argument in CD\n");
-			return 1;
-		}
-		printHistory(historyQueue);
+		// Change directory to "." or ".."
+		chdir(arr[1]);
+		// return for continue
 		return 1;
 	}
-	return 0;
+	// Regular attempt to change directory
+	if (chdir(arr[1]) == -1)
+	{
+		// Print error message for invalid directory
+		printf("history: too many arguments\n");
+	}
+	// return for continue
+	return 1;
 }
 
+// the implementation of history
+int history(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZE], int numWords, Queue *historyQueue)
+{
+	// history implementation
+	if (strcmp(arr[0], "history") != 0)
+	{
+		return 0;
+	}
+	// Add executed command to history
+	addToHistory(historyQueue, getpid(), str);
+
+	if (numWords > 1)
+	{
+		// Print error message for too many arguments
+		printf("Error for too many argument in CD\n");
+		// return for continue
+		return 1;
+	}
+	// Print history
+	printHistory(historyQueue);
+	// return for continue
+	return 1;
+}
+
+// setup the path for the shell
 void settingPath(int argc, char *argv[])
 {
+	// Get the current PATH environment variable value
 	char *value = getenv("PATH");
+	// Calculate the size of the PATH string
 	int path_size = strlen(value) + 1;
+	// Allocate memory for the PATH string
 	char *path = (char *)calloc(path_size, sizeof(char));
+	// Copy the current PATH string to the newly allocated memory
 	strcpy(path, value);
 
 	for (int i = 1; i < argc; i++)
 	{
 		if (strcmp(argv[i], "\0") == 0)
 		{
+			// Skip if argument is empty
 			continue;
 		}
+		// Calculate the new size of the PATH string with the additional argument
 		int size = strlen(path) + strlen(argv[i]) + 10;
 		if (size >= path_size)
 		{
+			// Resize the PATH string if needed
 			path = (char *)realloc(path, size * sizeof(char));
 			path_size = size;
 		}
 		strcat(path, ":");
 		strcat(path, argv[i]);
 	}
+	// Set the new PATH value
 	setenv("PATH", path, 1);
-
+	// Free the allocated memory for PATH string
 	free(path);
 }
 
+// the main function
 int main(int argc, char *argv[])
 {
+	// Set the PATH environment variable using command-line arguments
 	settingPath(argc, argv);
+	// Create a historyQueue of type Queue to store command history
 	Queue historyQueue;
+	// Initialize the historyQueue
 	initQueue(&historyQueue);
+
 	while (1)
 	{
+		// Initialize a string buffer to store user input
 		char str[MAX_STRING_SIZE] = " ";
+		// Initialize a 2D array to store parsed input words
 		char arr[MAX_SIZE][MAX_STRING_SIZE];
+		// Initialize a counter for the number of words in the input command
 		int numWords = 0;
+		// Get user input and store it in the str buffer
 		inputCommand(str);
+		// Parse the input command into individual words and store them in the arr array
 		stringToArray(str, arr, &numWords);
-		// exit implumention
+
 		if (strcmp(arr[0], "exit") == 0)
 		{
+			// If the command is "exit", break out of the loop and exit the program
 			break;
 		}
+
 		if (cd(str, arr, numWords, &historyQueue) || history(str, arr, numWords, &historyQueue))
 		{
+			// If the command is "cd" or "history", handle it and continue to the next iteration of the loop
 			continue;
 		}
+		// Execute the command using the executeCommand() function
 		executeCommand(str, arr, numWords, &historyQueue);
 	}
+	// Exit the program with a return value of 0 (indicating successful execution)
 	return 0;
 }
