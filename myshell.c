@@ -39,12 +39,14 @@ void push(Queue *q, char *value)
 }
 
 // Function to pop a string from the queue
-void pop(Queue *q) {
-    if (q->count == 0) {
-        return;
-    } 
+void pop(Queue *q)
+{
+	if (q->count == 0)
+	{
+		return;
+	}
 	q->front = (q->front + 1) % MAX_SIZE; // Update front pointer with circular buffer approach
-    q->count--;
+	q->count--;
 }
 
 // Function to count the number of elements in the queue
@@ -80,46 +82,6 @@ void addToHistory(Queue *q, pid_t pid, char *str)
 	char value[MAX_STRING_SIZE] = " ";
 	sprintf(value, "%d %s", pid, str);
 	push(q, value);
-}
-
-/**
- * wordCount - Function to count the number of words in a string.
- *
- * @param str: Input string to count the words.
- *
- * @return: The number of words found in the input string.
- *
- * @details: This function takes an input string and counts the number of words in it.
- *           Words are considered as consecutive non-space characters separated by spaces.
- *           The function uses a flag to keep track of whether the current character is part
- *           of a word or not, and increments the word count whenever a new word is found.
- *           The word count is returned as the result.
- *
- * @note: The input string 'str' should be a null-terminated string. The function does not
- *        modify the input string, and it does not consider any leading or trailing spaces
- *        as part of a word.
- */
-int wordCount(const char *str)
-{
-	int count = 0;
-	int len = strlen(str);
-	int isWord = 0; // flag to track if current character is part of a word
-
-	for (int i = 0; i < len; i++)
-	{
-		// Check if current character is not a space and previous character is a space or it's the beginning of the string
-		if (str[i] != ' ' && (i == 0 || str[i - 1] == ' '))
-		{
-			isWord = 1; // Set flag to indicate current character is part of a word
-			count++;	// Increment word count
-		}
-		else if (str[i] == ' ')
-		{
-			isWord = 0; // Reset flag when space is encountered
-		}
-	}
-
-	return count;
 }
 
 /**
@@ -165,7 +127,7 @@ void inputCommand(char str[MAX_STRING_SIZE])
 	scanf(" %100[^\n\r]", str);
 }
 
-int executeCommand(char arr[][MAX_STRING_SIZE], int numWords)
+void executeCommand(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZE], int numWords, Queue *historyQueue)
 {
 	pid_t pidfork = fork();
 	if (pidfork == -1)
@@ -190,11 +152,85 @@ int executeCommand(char arr[][MAX_STRING_SIZE], int numWords)
 	// Parent process
 	int status;
 	wait(&status); // Wait for child process to complete
-	return pidfork;
+	addToHistory(historyQueue, pidfork, str);
 }
 
-int main()
+int cd(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZE], int numWords, Queue *historyQueue)
 {
+	// cd implumention
+	if (strcmp(arr[0], "cd") == 0)
+	{
+		addToHistory(historyQueue, getpid(), str);
+		// not enath arguments
+		if (numWords > 2)
+		{
+			printf("cd: too many arguments\n");
+			return 1;
+		}
+		// spricell case
+		if (strcmp(arr[1], ".") == 0 || strcmp(arr[1], "..") == 0)
+		{
+			chdir(arr[1]);
+			return 1;
+		}
+		// regular try to get in
+		if (chdir(arr[1]) == -1)
+		{
+			printf("history: too many arguments\n");
+		}
+		return 1;
+	}
+	return 0;
+}
+
+int history(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZE], int numWords, Queue *historyQueue)
+{
+	// history implumention
+	if (strcmp(arr[0], "history") == 0)
+	{
+		addToHistory(historyQueue, getpid(), str);
+		if (numWords > 1)
+		{
+			printf("Error for too many argument in CD\n");
+			return 1;
+		}
+		printHistory(historyQueue);
+		return 1;
+	}
+	return 0;
+}
+
+
+void settingPath(int argc, char *argv[])
+{
+	char *value = getenv("PATH");
+	int path_size = strlen(value) + 1;
+	char *path = (char *)calloc(path_size, sizeof(char));
+	strcpy(path, value);
+
+	for (int i = 1; i < argc; i++)
+	{
+		if (strcmp(argv[i], "\0") == 0)
+		{
+			continue;
+		}
+		int size = strlen(path) + strlen(argv[i]) + 10;
+		if (size >= path_size)
+		{
+			path = (char *)realloc(path, size * sizeof(char));
+			path_size = size;
+		}
+		strcat(path, ":");
+		strcat(path, argv[i]);
+	}
+	setenv("PATH", path, 1);
+
+	free(path); // Free the allocated memory for path
+}
+
+int main(int argc, char *argv[])
+{
+	settingPath(argc, argv);
 	Queue historyQueue;
 	initQueue(&historyQueue);
 	while (1)
@@ -209,40 +245,11 @@ int main()
 		{
 			break;
 		}
-		// cd implumention
-		if (strcmp(arr[0], "cd") == 0)
+		if (cd(str, arr, numWords, &historyQueue) || history(str, arr, numWords, &historyQueue))
 		{
-			// not enath arguments
-			if (numWords > 2)
-			{
-				printf("Error for too many argument in CD\n");
-				addToHistory(&historyQueue, getpid(), str);
-				continue;
-			}
-			// spricell case
-			if (strcmp(arr[1], ".") == 0 || strcmp(arr[1], "..") == 0)
-			{
-				chdir(arr[1]);
-				addToHistory(&historyQueue, getpid(), str);
-				continue;
-			}
-			// regular try to get in
-			if (chdir(arr[1]) == NULL)
-			{
-				addToHistory(&historyQueue, getpid(), str);
-				printf("Error in cd directory selection\n");
-			}
 			continue;
 		}
-		// history implumention
-		if (strcmp(arr[0], "history") == 0)
-		{
-			addToHistory(&historyQueue, getpid(), str);
-			printHistory(&historyQueue);
-			continue;
-		}
-		pid_t pid = executeCommand(arr, numWords);
-		addToHistory(&historyQueue, pid, str);
+		executeCommand(str, arr, numWords, &historyQueue);
 	}
 	return 0;
 }
