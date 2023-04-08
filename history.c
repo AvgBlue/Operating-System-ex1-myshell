@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_SIZE 100 // Maximum size of the queue
+#define MAX_SIZE 5 // Maximum size of the queue
 #define MAX_LENGTH 100 // Maximum length of each string in the queue
 
 char queue[MAX_SIZE][MAX_LENGTH + 1]; // Queue data structure

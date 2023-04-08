@@ -6,6 +6,81 @@
 #include <stdlib.h>
 
 #define INPUT_SIZE 100
+#define EXIT_EXECVP_FAILED 99
+#define MAX_SIZE 100		// Maximum size of the queue
+#define MAX_STRING_SIZE 100 // Maximum size of a string
+
+typedef struct
+{
+	char queue[MAX_SIZE][MAX_STRING_SIZE + MAX_STRING_SIZE]; // Queue data structure
+	int front;												 // Front pointer
+	int rear;												 // Rear pointer
+	int count;												 // Count of elements in the queue
+} Queue;
+
+// Function to initialize the queue
+void initQueue(Queue *q)
+{
+	q->front = 0;
+	q->rear = -1;
+	q->count = 0;
+}
+
+// Function to push a string into the queue
+void push(Queue *q, char *value)
+{
+	if (q->count == MAX_SIZE)
+	{
+		return;
+	}
+	q->rear = (q->rear + 1) % MAX_SIZE; // Update rear pointer with circular buffer approach
+	strcpy(q->queue[q->rear], value);
+	q->count++;
+}
+
+// Function to pop a string from the queue
+void pop(Queue *q) {
+    if (q->count == 0) {
+        return;
+    } 
+	q->front = (q->front + 1) % MAX_SIZE; // Update front pointer with circular buffer approach
+    q->count--;
+}
+
+// Function to count the number of elements in the queue
+int queueCount(Queue *q)
+{
+	return q->count;
+}
+
+// Function to print all elements in the queue
+void printHistory(Queue *q)
+{
+	if (q->count == 0)
+	{
+		return;
+	}
+	int i = q->front;
+	int elementsPrinted = 0;
+	while (elementsPrinted < q->count)
+	{
+		printf("%s\n", q->queue[i]);
+		i = (i + 1) % MAX_SIZE; // Update index with circular buffer approach
+		elementsPrinted++;
+	}
+}
+
+// Function to add a string to the history queue
+void addToHistory(Queue *q, pid_t pid, char *str)
+{
+	if (queueCount(q) == MAX_SIZE)
+	{
+		pop(q);
+	}
+	char value[MAX_STRING_SIZE] = " ";
+	sprintf(value, "%d %s", pid, str);
+	push(q, value);
+}
 
 /**
  * wordCount - Function to count the number of words in a string.
@@ -67,7 +142,7 @@ int wordCount(const char *str)
  *        The 'numWords' parameter should be initialized to 0 before calling the function,
  *        and it will be updated with the number of words found in the input string.
  */
-void stringToArray(const char str[], char arr[][INPUT_SIZE], int *numWords)
+void stringToArray(const char str[], char arr[][MAX_STRING_SIZE], int *numWords)
 {
 	char copyStr[100]; // Make a copy of the input string to avoid modifying it
 	strcpy(copyStr, str);
@@ -83,14 +158,14 @@ void stringToArray(const char str[], char arr[][INPUT_SIZE], int *numWords)
 	}
 }
 
-void inputCommand(char str[INPUT_SIZE])
+void inputCommand(char str[MAX_STRING_SIZE])
 {
 	printf("$ ");
 	fflush(stdout);
 	scanf(" %100[^\n\r]", str);
 }
 
-void executeCommand(char arr[][INPUT_SIZE], int numWords)
+int executeCommand(char arr[][MAX_STRING_SIZE], int numWords)
 {
 	pid_t pidfork = fork();
 	if (pidfork == -1)
@@ -107,57 +182,67 @@ void executeCommand(char arr[][INPUT_SIZE], int numWords)
 		{
 			args[i] = arr[i]; // Assign each word to the arguments array
 		}
-		args[numWords] = NULL;	 // Set last element of arguments array to NULL as required by execvp
-		execvp(args[0], args);	 // Execute the command
-		perror("execvp failed"); // If execvp returns, it means it failed
-		exit(EXIT_FAILURE);		 // Exit child process with failure status
+		args[numWords] = NULL;	  // Set last element of arguments array to NULL as required by execvp
+		execvp(args[0], args);	  // Execute the command
+		perror("execvp failed");  // If execvp returns, it means it failed
+		exit(EXIT_EXECVP_FAILED); // Exit child process with failure status
 	}
 	// Parent process
 	int status;
-	return wait(&status); // Wait for child process to complete
+	wait(&status); // Wait for child process to complete
+	return pidfork;
 }
 
 int main()
 {
-
+	Queue historyQueue;
+	initQueue(&historyQueue);
 	while (1)
 	{
-		char str[INPUT_SIZE] = " ";
-		char arr[INPUT_SIZE][INPUT_SIZE];
+		char str[MAX_STRING_SIZE] = " ";
+		char arr[MAX_SIZE][MAX_STRING_SIZE];
 		int numWords = 0;
 		inputCommand(str);
 		stringToArray(str, arr, &numWords);
+		// exit implumention
 		if (strcmp(arr[0], "exit") == 0)
 		{
 			break;
 		}
+		// cd implumention
 		if (strcmp(arr[0], "cd") == 0)
 		{
 			// not enath arguments
 			if (numWords > 2)
 			{
 				printf("Error for too many argument in CD\n");
+				addToHistory(&historyQueue, getpid(), str);
 				continue;
 			}
 			// spricell case
 			if (strcmp(arr[1], ".") == 0 || strcmp(arr[1], "..") == 0)
 			{
 				chdir(arr[1]);
+				addToHistory(&historyQueue, getpid(), str);
 				continue;
 			}
 			// regular try to get in
 			if (chdir(arr[1]) == NULL)
 			{
+				addToHistory(&historyQueue, getpid(), str);
 				printf("Error in cd directory selection\n");
 			}
 			continue;
 		}
+		// history implumention
 		if (strcmp(arr[0], "history") == 0)
 		{
-			printf("print the history log\n");
+			addToHistory(&historyQueue, getpid(), str);
+			printHistory(&historyQueue);
 			continue;
 		}
-		executeCommand(arr, numWords);
+		pid_t pid = executeCommand(arr, numWords);
+		addToHistory(&historyQueue, pid, str);
 	}
 	return 0;
 }
