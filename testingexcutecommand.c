@@ -67,11 +67,6 @@ void executeCommand(char arr[][100], int numWords) {
 
 
 int main() {
-	// char* commandStr="echo \"hello world\"";
-	// int wordnum = 0;
-    // char commandArray[100][100];
-	// stringToArray(commandStr,commandArray,&wordnum);
-    // executeCommand(commandArray, wordnum); // Call the executeCommand function with the command and argument
 	char* array[]={"echo","\"number","one","number","two\"",NULL};
 	execvp(array[0], array);
     return 0;

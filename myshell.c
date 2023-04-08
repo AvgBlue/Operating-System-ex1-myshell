@@ -5,6 +5,8 @@
 #include <sys/wait.h>
 #include <stdlib.h>
 
+#define INPUT_SIZE 100
+
 /**
  * wordCount - Function to count the number of words in a string.
  *
@@ -22,22 +24,27 @@
  *        modify the input string, and it does not consider any leading or trailing spaces
  *        as part of a word.
  */
-int wordCount(const char *str) {
-    int count = 0;
-    int len = strlen(str);
-    int isWord = 0; // flag to track if current character is part of a word
+int wordCount(const char *str)
+{
+	int count = 0;
+	int len = strlen(str);
+	int isWord = 0; // flag to track if current character is part of a word
 
-    for (int i = 0; i < len; i++) {
-        // Check if current character is not a space and previous character is a space or it's the beginning of the string
-        if (str[i] != ' ' && (i == 0 || str[i - 1] == ' ')) {
-            isWord = 1; // Set flag to indicate current character is part of a word
-            count++; // Increment word count
-        } else if (str[i] == ' ') {
-            isWord = 0; // Reset flag when space is encountered
-        }
-    }
+	for (int i = 0; i < len; i++)
+	{
+		// Check if current character is not a space and previous character is a space or it's the beginning of the string
+		if (str[i] != ' ' && (i == 0 || str[i - 1] == ' '))
+		{
+			isWord = 1; // Set flag to indicate current character is part of a word
+			count++;	// Increment word count
+		}
+		else if (str[i] == ' ')
+		{
+			isWord = 0; // Reset flag when space is encountered
+		}
+	}
 
-    return count;
+	return count;
 }
 
 /**
@@ -60,60 +67,97 @@ int wordCount(const char *str) {
  *        The 'numWords' parameter should be initialized to 0 before calling the function,
  *        and it will be updated with the number of words found in the input string.
  */
-void stringToArray(const char str[], char arr[][100], int *numWords) {
-    char copyStr[100]; // Make a copy of the input string to avoid modifying it
-    strcpy(copyStr, str);
+void stringToArray(const char str[], char arr[][INPUT_SIZE], int *numWords)
+{
+	char copyStr[100]; // Make a copy of the input string to avoid modifying it
+	strcpy(copyStr, str);
 
-    char *token = strtok(copyStr, " "); // Tokenize the input string by space
+	char *token = strtok(copyStr, " "); // Tokenize the input string by space
 
-    // Copy each token (word) to the array
-    while (token != NULL && *numWords < 100) {
-        strcpy(arr[*numWords], token);
-        (*numWords)++;
-        token = strtok(NULL, " ");
-    }
+	// Copy each token (word) to the array
+	while (token != NULL && *numWords < 100)
+	{
+		strcpy(arr[*numWords], token);
+		(*numWords)++;
+		token = strtok(NULL, " ");
+	}
 }
 
-void inputCommand(char str[100]){
-	printf("$ "); 
+void inputCommand(char str[INPUT_SIZE])
+{
+	printf("$ ");
 	fflush(stdout);
 	scanf(" %100[^\n\r]", str);
 }
 
-void executeCommand(char arr[][100], int numWords) {
-    pid_t pidfork = fork();
-    if (pidfork == -1) {
-        // Fork failed
-        perror("fork failed");
-        return;
-    } else if (pidfork == 0) {
-        // Child process
-      	char** args = (char**)calloc(numWords + 1, sizeof(char*)); // Allocate memory for arguments array
-        for (int i = 0; i < numWords; i++) {
-            args[i] = arr[i]; // Assign each word to the arguments array
-        }
-        args[numWords] = NULL; // Set last element of arguments array to NULL as required by execvp
-        execvp(args[0], args); // Execute the command
-        perror("execvp failed"); // If execvp returns, it means it failed
-        exit(EXIT_FAILURE); // Exit child process with failure status
-    } else {
-        // Parent process
-        int status;
-        wait(&status); // Wait for child process to complete
-    }
+void executeCommand(char arr[][INPUT_SIZE], int numWords)
+{
+	pid_t pidfork = fork();
+	if (pidfork == -1)
+	{
+		// Fork failed
+		perror("fork failed");
+		return;
+	}
+	else if (pidfork == 0)
+	{
+		// Child process
+		char **args = (char **)calloc(numWords + 1, sizeof(char *)); // Allocate memory for arguments array
+		for (int i = 0; i < numWords; i++)
+		{
+			args[i] = arr[i]; // Assign each word to the arguments array
+		}
+		args[numWords] = NULL;	 // Set last element of arguments array to NULL as required by execvp
+		execvp(args[0], args);	 // Execute the command
+		perror("execvp failed"); // If execvp returns, it means it failed
+		exit(EXIT_FAILURE);		 // Exit child process with failure status
+	}
+	// Parent process
+	int status;
+	return wait(&status); // Wait for child process to complete
 }
 
+int main()
+{
 
-
-int main () {
-	char str[100]=" ";
-	
-	while(1){
+	while (1)
+	{
+		char str[INPUT_SIZE] = " ";
+		char arr[INPUT_SIZE][INPUT_SIZE];
+		int numWords = 0;
 		inputCommand(str);
-		if (strcmp(str,"exit") == 0){
+		stringToArray(str, arr, &numWords);
+		if (strcmp(arr[0], "exit") == 0)
+		{
 			break;
 		}
-		printf("your input is %s\n",str);
+		if (strcmp(arr[0], "cd") == 0)
+		{
+			// not enath arguments
+			if (numWords > 2)
+			{
+				printf("Error for too many argument in CD\n");
+				continue;
+			}
+			// spricell case
+			if (strcmp(arr[1], ".") == 0 || strcmp(arr[1], "..") == 0)
+			{
+				chdir(arr[1]);
+				continue;
+			}
+			// regular try to get in
+			if (chdir(arr[1]) == NULL)
+			{
+				printf("Error in cd directory selection\n");
+			}
+			continue;
+		}
+		if (strcmp(arr[0], "history") == 0)
+		{
+			printf("print the history log\n");
+			continue;
+		}
+		executeCommand(arr, numWords);
 	}
 	return 0;
 }
