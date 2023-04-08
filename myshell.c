@@ -17,14 +17,14 @@ typedef struct
 	int count;
 } Queue;
 
-//initializes the queue
+// initializes the queue
 void initQueue(Queue *q)
 {
-	//set front to 0
+	// set front to 0
 	q->front = 0;
-	//set rear to -1
+	// set rear to -1
 	q->rear = -1;
-	//set count 0;
+	// set count 0;
 	q->count = 0;
 }
 // This function adds an element to the queue
@@ -45,154 +45,174 @@ void push(Queue *q, char *value)
 // pop element from the queue
 void pop(Queue *q)
 {
-    // Check if the queue is empty
-    if (q->count == 0)
-    {
-        return; // If empty, return without making any changes
-    }
-    
-    // Update the front index of the queue to remove the element
-    q->front = (q->front + 1) % MAX_SIZE; // Circular buffer implementation
-    
-    // Decrease the count of elements in the queue
-    q->count--;
+	// Check if the queue is empty
+	if (q->count == 0)
+	{
+		return; // If empty, return without making any changes
+	}
+
+	// Update the front index of the queue to remove the element
+	q->front = (q->front + 1) % MAX_SIZE; // Circular buffer implementation
+
+	// Decrease the count of elements in the queue
+	q->count--;
 }
 
 // return the number of elements in the queue
 int queueCount(Queue *q)
 {
-    // Return the count of elements in the queue
-    return q->count;
+	// Return the count of elements in the queue
+	return q->count;
 }
 
-//printing the history Queue
+// printing the history Queue
 void printHistory(Queue *q)
 {
-    // Check if the queue is empty
-    if (q->count == 0)
-    {
+	// Check if the queue is empty
+	if (q->count == 0)
+	{
 		// If empty, return without printing anything
-        return; 
-    }
-     // Initialize index to the front of the queue
-    int i = q->front;
+		return;
+	}
+	// Initialize index to the front of the queue
+	int i = q->front;
 	// Initialize counter for elements printed
-    int elementsPrinted = 0; 
-    
-    // Loop through the queue and print the elements
-    while (elementsPrinted < q->count)
-    {
+	int elementsPrinted = 0;
+
+	// Loop through the queue and print the elements
+	while (elementsPrinted < q->count)
+	{
 		// Print the element at the current index
-        printf("%s\n", q->queue[i]); 
-        
+		printf("%s\n", q->queue[i]);
+
 		// Move to the next index, considering circular buffer
-        i = (i + 1) % MAX_SIZE; 
-        
-        elementsPrinted++; // Increase the counter for elements printed
-    }
+		i = (i + 1) % MAX_SIZE;
+
+		elementsPrinted++; // Increase the counter for elements printed
+	}
 }
 
-//add elements to the history queue
+// add elements to the history queue
 void addToHistory(Queue *q, pid_t pid, char *str)
 {
-    if (queueCount(q) == MAX_SIZE)
-    {
+	if (queueCount(q) == MAX_SIZE)
+	{
 		// If the queue is full, remove the oldest element from the front
-        pop(q); 
-    }
+		pop(q);
+	}
 	// Create a new string buffer for the value
-    char value[MAX_STRING_SIZE] = " "; 
+	char value[MAX_STRING_SIZE] = " ";
 	// Format the process ID and string into the value buffer
-    sprintf(value, "%d %s", pid, str); 
+	sprintf(value, "%d %s", pid, str);
 	// Add the new value to the end of the queue
-    push(q, value); 
+	push(q, value);
 }
 
-
-//convert the string to an array and return the number words the array
+// convert the string to an array and return the number words the array
 void stringToArray(const char str[], char arr[][MAX_STRING_SIZE], int *numWords)
 {
-    // Create a temporary copy of the input string to avoid modifying the original string
-    char copyStr[100]; 
-    strcpy(copyStr, str); 
+	// Create a temporary copy of the input string to avoid modifying the original string
+	char copyStr[100];
+	strcpy(copyStr, str);
 
-    // Use strtok to tokenize the string by space (" ")
-    char *token = strtok(copyStr, " "); 
+	// Use strtok to tokenize the string by space (" ")
+	char *token = strtok(copyStr, " ");
 
-    // Loop until all tokens (words) are processed or numWords reaches the maximum limit
-    while (token != NULL && *numWords < 100) 
-    {
-        // Copy the token (word) into the array of strings at the current index
-        strcpy(arr[*numWords], token); 
-        // Increment the counter for number of words
-        (*numWords)++; 
-        // Move to the next token (word)
-        token = strtok(NULL, " "); 
-    }
+	// Loop until all tokens (words) are processed or numWords reaches the maximum limit
+	while (token != NULL && *numWords < 100)
+	{
+		// Copy the token (word) into the array of strings at the current index
+		strcpy(arr[*numWords], token);
+		// Increment the counter for number of words
+		(*numWords)++;
+		// Move to the next token (word)
+		token = strtok(NULL, " ");
+	}
 }
 
-
-//input the a command from the user
+// input the a command from the user
 void inputCommand(char str[MAX_STRING_SIZE])
 {
+	// Print prompt for input
 	printf("$ ");
+	// Flush output buffer to ensure prompt is displayed
 	fflush(stdout);
+	// Read input from user, allowing up to 100 characters until newline or carriage return
 	scanf(" %100[^\n\r]", str);
 }
 
+// excuteing the commants the the user inputed
 void executeCommand(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZE], int numWords, Queue *historyQueue)
 {
+	// Fork a child process
 	pid_t pidfork = fork();
 	if (pidfork == -1)
 	{
 		// Fork failed
+		// Print error message
 		perror("fork failed");
 		return;
 	}
 	else if (pidfork == 0)
 	{
 		// Child process
+		// Allocate memory for argument array
 		char **args = (char **)calloc(numWords + 1, sizeof(char *));
 		for (int i = 0; i < numWords; i++)
 		{
+			// Copy arguments to argument array
 			args[i] = arr[i];
 		}
+		// Set last element of argument array to NULL
 		args[numWords] = NULL;
+		// Execute the command with arguments
 		execvp(args[0], args);
+		// Print error message if execvp fails
 		perror("execvp failed");
+		// Exit child process with failure status
 		exit(EXIT_EXECVP_FAILED);
 	}
 	// Parent process
 	int status;
+	// Wait for child process to complete
 	wait(&status);
+	// Add executed command to history
 	addToHistory(historyQueue, pidfork, str);
 }
 
 int cd(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZE], int numWords, Queue *historyQueue)
 {
-	// cd implumention
+	// cd implementation
 	if (strcmp(arr[0], "cd") == 0)
 	{
+		// Add executed command to history
 		addToHistory(historyQueue, getpid(), str);
 
 		if (numWords > 2)
 		{
+			// Print error message for too many arguments
 			printf("cd: too many arguments\n");
+			// return for continue
 			return 1;
 		}
-		// spricell case
+		// Special cases for "." and ".."
 		if (strcmp(arr[1], ".") == 0 || strcmp(arr[1], "..") == 0)
 		{
+			// Change directory to "." or ".."
 			chdir(arr[1]);
+			// return for continue
 			return 1;
 		}
-		// regular try to get in
+		// Regular attempt to change directory
 		if (chdir(arr[1]) == -1)
 		{
+			// Print error message for invalid directory
 			printf("history: too many arguments\n");
 		}
+		// return for continue
 		return 1;
 	}
+	// Return failure status if command is not "cd"
 	return 0;
 }
 
