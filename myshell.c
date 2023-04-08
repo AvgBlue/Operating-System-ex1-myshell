@@ -5,121 +5,134 @@
 #include <sys/wait.h>
 #include <stdlib.h>
 
-#define INPUT_SIZE 100
 #define EXIT_EXECVP_FAILED 99
-#define MAX_SIZE 100		// Maximum size of the queue
-#define MAX_STRING_SIZE 100 // Maximum size of a string
+#define MAX_SIZE 100
+#define MAX_STRING_SIZE 100
 
 typedef struct
 {
-	char queue[MAX_SIZE][MAX_STRING_SIZE + MAX_STRING_SIZE]; // Queue data structure
-	int front;												 // Front pointer
-	int rear;												 // Rear pointer
-	int count;												 // Count of elements in the queue
+	char queue[MAX_SIZE][MAX_STRING_SIZE + MAX_STRING_SIZE];
+	int front;
+	int rear;
+	int count;
 } Queue;
 
-// Function to initialize the queue
+//initializes the queue
 void initQueue(Queue *q)
 {
+	//set front to 0
 	q->front = 0;
+	//set rear to -1
 	q->rear = -1;
+	//set count 0;
 	q->count = 0;
 }
-
-// Function to push a string into the queue
+// This function adds an element to the queue
 void push(Queue *q, char *value)
 {
+	// If the queue is full, return
 	if (q->count == MAX_SIZE)
 	{
 		return;
 	}
-	q->rear = (q->rear + 1) % MAX_SIZE; // Update rear pointer with circular buffer approach
+
+	// Increment the rear pointer and add the value to the queue
+	q->rear = (q->rear + 1) % MAX_SIZE;
 	strcpy(q->queue[q->rear], value);
 	q->count++;
 }
 
-// Function to pop a string from the queue
+// pop element from the queue
 void pop(Queue *q)
 {
-	if (q->count == 0)
-	{
-		return;
-	}
-	q->front = (q->front + 1) % MAX_SIZE; // Update front pointer with circular buffer approach
-	q->count--;
+    // Check if the queue is empty
+    if (q->count == 0)
+    {
+        return; // If empty, return without making any changes
+    }
+    
+    // Update the front index of the queue to remove the element
+    q->front = (q->front + 1) % MAX_SIZE; // Circular buffer implementation
+    
+    // Decrease the count of elements in the queue
+    q->count--;
 }
 
-// Function to count the number of elements in the queue
+// return the number of elements in the queue
 int queueCount(Queue *q)
 {
-	return q->count;
+    // Return the count of elements in the queue
+    return q->count;
 }
 
-// Function to print all elements in the queue
+//printing the history Queue
 void printHistory(Queue *q)
 {
-	if (q->count == 0)
-	{
-		return;
-	}
-	int i = q->front;
-	int elementsPrinted = 0;
-	while (elementsPrinted < q->count)
-	{
-		printf("%s\n", q->queue[i]);
-		i = (i + 1) % MAX_SIZE; // Update index with circular buffer approach
-		elementsPrinted++;
-	}
+    // Check if the queue is empty
+    if (q->count == 0)
+    {
+		// If empty, return without printing anything
+        return; 
+    }
+     // Initialize index to the front of the queue
+    int i = q->front;
+	// Initialize counter for elements printed
+    int elementsPrinted = 0; 
+    
+    // Loop through the queue and print the elements
+    while (elementsPrinted < q->count)
+    {
+		// Print the element at the current index
+        printf("%s\n", q->queue[i]); 
+        
+		// Move to the next index, considering circular buffer
+        i = (i + 1) % MAX_SIZE; 
+        
+        elementsPrinted++; // Increase the counter for elements printed
+    }
 }
 
-// Function to add a string to the history queue
+//add elements to the history queue
 void addToHistory(Queue *q, pid_t pid, char *str)
 {
-	if (queueCount(q) == MAX_SIZE)
-	{
-		pop(q);
-	}
-	char value[MAX_STRING_SIZE] = " ";
-	sprintf(value, "%d %s", pid, str);
-	push(q, value);
+    if (queueCount(q) == MAX_SIZE)
+    {
+		// If the queue is full, remove the oldest element from the front
+        pop(q); 
+    }
+	// Create a new string buffer for the value
+    char value[MAX_STRING_SIZE] = " "; 
+	// Format the process ID and string into the value buffer
+    sprintf(value, "%d %s", pid, str); 
+	// Add the new value to the end of the queue
+    push(q, value); 
 }
 
-/**
- * stringToArray - Function to separate a string into words and store them in a 2D array.
- *
- * @param str: Input string to be separated into words.
- * @param arr: 2D array to store the separated words.
- * @param numWords: Pointer to an integer to store the number of words found.
- *
- * @return: None.
- *
- * @details: This function takes an input string, uses strtok to tokenize it by space,
- *           and stores the resulting words in a 2D array. The number of words found is
- *           stored in the numWords parameter, which is passed as a pointer to allow
- *           updating its value within the function.
- *
- * @note: The input string 'str' should be a null-terminated string with a maximum
- *        length of 100 characters. The 2D array 'arr' should have a size of [100][100],
- *        where each word is stored in a row with a maximum length of 100 characters.
- *        The 'numWords' parameter should be initialized to 0 before calling the function,
- *        and it will be updated with the number of words found in the input string.
- */
+
+//convert the string to an array and return the number words the array
 void stringToArray(const char str[], char arr[][MAX_STRING_SIZE], int *numWords)
 {
-	char copyStr[100]; // Make a copy of the input string to avoid modifying it
-	strcpy(copyStr, str);
+    // Create a temporary copy of the input string to avoid modifying the original string
+    char copyStr[100]; 
+    strcpy(copyStr, str); 
 
-	char *token = strtok(copyStr, " "); // Tokenize the input string by space
+    // Use strtok to tokenize the string by space (" ")
+    char *token = strtok(copyStr, " "); 
 
-	// Copy each token (word) to the array
-	while (token != NULL && *numWords < 100)
-	{
-		strcpy(arr[*numWords], token);
-		(*numWords)++;
-		token = strtok(NULL, " ");
-	}
+    // Loop until all tokens (words) are processed or numWords reaches the maximum limit
+    while (token != NULL && *numWords < 100) 
+    {
+        // Copy the token (word) into the array of strings at the current index
+        strcpy(arr[*numWords], token); 
+        // Increment the counter for number of words
+        (*numWords)++; 
+        // Move to the next token (word)
+        token = strtok(NULL, " "); 
+    }
 }
 
+
+//input the a command from the user
 void inputCommand(char str[MAX_STRING_SIZE])
 {
 	printf("$ ");
@@ -139,19 +152,19 @@ void executeCommand(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZ
 	else if (pidfork == 0)
 	{
 		// Child process
-		char **args = (char **)calloc(numWords + 1, sizeof(char *)); // Allocate memory for arguments array
+		char **args = (char **)calloc(numWords + 1, sizeof(char *));
 		for (int i = 0; i < numWords; i++)
 		{
-			args[i] = arr[i]; // Assign each word to the arguments array
+			args[i] = arr[i];
 		}
-		args[numWords] = NULL;	  // Set last element of arguments array to NULL as required by execvp
-		execvp(args[0], args);	  // Execute the command
-		perror("execvp failed");  // If execvp returns, it means it failed
-		exit(EXIT_EXECVP_FAILED); // Exit child process with failure status
+		args[numWords] = NULL;
+		execvp(args[0], args);
+		perror("execvp failed");
+		exit(EXIT_EXECVP_FAILED);
 	}
 	// Parent process
 	int status;
-	wait(&status); // Wait for child process to complete
+	wait(&status);
 	addToHistory(historyQueue, pidfork, str);
 }
 
@@ -161,7 +174,7 @@ int cd(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZE], int numWo
 	if (strcmp(arr[0], "cd") == 0)
 	{
 		addToHistory(historyQueue, getpid(), str);
-		// not enath arguments
+
 		if (numWords > 2)
 		{
 			printf("cd: too many arguments\n");
@@ -200,7 +213,6 @@ int history(char str[MAX_STRING_SIZE], char arr[MAX_SIZE][MAX_STRING_SIZE], int 
 	return 0;
 }
 
-
 void settingPath(int argc, char *argv[])
 {
 	char *value = getenv("PATH");
@@ -225,7 +237,7 @@ void settingPath(int argc, char *argv[])
 	}
 	setenv("PATH", path, 1);
 
-	free(path); // Free the allocated memory for path
+	free(path);
 }
 
 int main(int argc, char *argv[])
