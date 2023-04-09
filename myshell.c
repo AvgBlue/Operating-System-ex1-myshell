@@ -317,3 +317,7 @@ int main(int argc, char *argv[])
 	// Exit the program with a return value of 0 (indicating successful execution)
 	return 0;
 }
+
+
+// /home/david/git_Repository_Drop_Place/Operating-System-ex1-gccfind/gccfind.sh /home/david/Desktop/testfolder word
+// ./gccfind.sh /home/david/Desktop/testfolder word
